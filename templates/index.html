@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>자전거 재배치 시스템</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .summary-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .summary-card h3 {
+            color: #667eea;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        
+        .summary-card .value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+        
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        tr:hover {
+            background: #f5f5f5;
+        }
+        
+        .station-type {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            display: inline-block;
+        }
+        
+        .type-pickup {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .type-dropoff {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+        
+        .type-balanced {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .action-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            display: inline-block;
+            text-transform: uppercase;
+        }
+        
+        .action-pickup {
+            background: #fff3e0;
+            color: #e65100;
+        }
+        
+        .action-dropoff {
+            background: #f3e5f5;
+            color: #6a1b9a;
+        }
+        
+        .action-return {
+            background: #e0e0e0;
+            color: #616161;
+        }
+        
+        .priority-high {
+            color: #d32f2f;
+            font-weight: bold;
+        }
+        
+        .priority-medium {
+            color: #f57c00;
+            font-weight: bold;
+        }
+        
+        .priority-low {
+            color: #388e3c;
+        }
+        
+        .bike-status {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .bike-bar {
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            width: 100px;
+            position: relative;
+        }
+        
+        .bike-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+            transition: width 0.3s ease;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .tab-button {
+            padding: 10px 20px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .tab-button.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @media (max-width: 768px) {
+            .summary-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            table {
+                font-size: 0.9em;
+            }
+            
+            th, td {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚴 서울시 공공자전거 재배치 시스템</h1>
+        
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+            <div class="summary-card">
+                <h3>전체 스테이션</h3>
+                <div class="value">{{ summary.total_stations }}</div>
+            </div>
+            <div class="summary-card">
+                <h3>수거 필요</h3>
+                <div class="value" style="color: #c62828;">{{ summary.pickup_stations }}</div>
+            </div>
+            <div class="summary-card">
+                <h3>배치 필요</h3>
+                <div class="value" style="color: #1565c0;">{{ summary.dropoff_stations }}</div>
+            </div>
+            <div class="summary-card">
+                <h3>균형 상태</h3>
+                <div class="value" style="color: #2e7d32;">{{ summary.balanced_stations }}</div>
+            </div>
+            <div class="summary-card">
+                <h3>총 이동시간</h3>
+                <div class="value">{{ summary.total_time }}분</div>
+            </div>
+            <div class="summary-card">
+                <h3>재배치 자전거</h3>
+                <div class="value">{{ summary.total_bikes_redistributed }}대</div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="section">
+            <div class="tabs">
+                <button class="tab-button active" onclick="showTab('stations')">스테이션 현황</button>
+                <button class="tab-button" onclick="showTab('route')">재배치 경로</button>
+            </div>
+            
+            <!-- Stations Tab -->
+            <div id="stations" class="tab-content active">
+                <h2>📍 스테이션 현황 (우선순위 순)</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>스테이션명</th>
+                            <th>현재/최대</th>
+                            <th>상태</th>
+                            <th>적정 재고</th>
+                            <th>상태 유형</th>
+                            <th>우선순위 점수</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for station in stations %}
+                        <tr>
+                            <td><strong>{{ station.name }}</strong><br><small>{{ station.id }}</small></td>
+                            <td>
+                                <div class="bike-status">
+                                    <span>{{ station.current_bikes }}/{{ station.capacity }}</span>
+                                    <div class="bike-bar">
+                                        <div class="bike-fill" style="width: {{ (station.current_bikes / station.capacity * 100) if station.capacity > 0 else 0 }}%"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% set percentage = (station.current_bikes / station.capacity * 100) if station.capacity > 0 else 0 %}
+                                {% if percentage > 80 %}
+                                    <span style="color: #d32f2f;">포화</span>
+                                {% elif percentage < 20 %}
+                                    <span style="color: #1565c0;">부족</span>
+                                {% else %}
+                                    <span style="color: #2e7d32;">양호</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ station.optimal_stock }}대</td>
+                            <td>
+                                <span class="station-type type-{{ station.type.lower().replace('-', '') }}">
+                                    {{ station.type }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if station.priority_score > 0.8 %}
+                                    <span class="priority-high">{{ station.priority_score }}</span>
+                                {% elif station.priority_score > 0.4 %}
+                                    <span class="priority-medium">{{ station.priority_score }}</span>
+                                {% else %}
+                                    <span class="priority-low">{{ station.priority_score }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Route Tab -->
+            <div id="route" class="tab-content">
+                <h2>🚚 최적 재배치 경로</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>순서</th>
+                            <th>스테이션</th>
+                            <th>작업</th>
+                            <th>이동 자전거</th>
+                            <th>트럭 적재량</th>
+                            <th>이동 시간</th>
+                            <th>효율성 점수</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stop in route %}
+                        <tr>
+                            <td><strong>#{{ stop.stop_number }}</strong></td>
+                            <td>{{ stop.station_name }}</td>
+                            <td>
+                                <span class="action-badge action-{{ stop.action }}">
+                                    {{ stop.action }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if stop.bikes_transferred > 0 %}
+                                    {{ stop.bikes_transferred }}대
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>{{ stop.truck_load_after }}대</td>
+                            <td>{{ stop.travel_time }}분</td>
+                            <td>{{ stop.efficiency_score }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                
+                <div style="margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+                    <h3 style="color: #333; margin-bottom: 10px;">경로 요약</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div>
+                            <strong>총 방문 스테이션:</strong> {{ summary.total_stops }}개<br>
+                            <strong>수거 작업:</strong> {{ summary.pickup_stops }}회<br>
+                            <strong>배치 작업:</strong> {{ summary.dropoff_stops }}회
+                        </div>
+                        <div>
+                            <strong>총 이동 시간:</strong> {{ summary.total_time }}분<br>
+                            <strong>재배치 자전거:</strong> {{ summary.total_bikes_redistributed }}대<br>
+                            <strong>트럭 용량:</strong> 20대
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function showTab(tabName) {
+            // Hide all tabs
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Remove active class from all buttons
+            const buttons = document.querySelectorAll('.tab-button');
+            buttons.forEach(button => button.classList.remove('active'));
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to clicked button
+            event.target.classList.add('active');
+        }
+        
+        // Auto-refresh every 30 seconds
+        setTimeout(() => {
+            location.reload();
+        }, 30000);
+    </script>
+</body>
+</html>
